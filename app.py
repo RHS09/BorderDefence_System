@@ -33,6 +33,18 @@ html, body, [class*="css"] {
     color: #ffffff;
 }
 
+.st-key-world-risk-map [data-testid="stPlotlyChart"] {
+    height: clamp(360px, calc(100vh - 320px), 900px) !important;
+    height: clamp(360px, calc(100svh - 320px), 900px) !important;
+}
+
+@media (max-width: 640px) {
+    .st-key-world-risk-map [data-testid="stPlotlyChart"] {
+        height: clamp(340px, calc(100vh - 300px), 680px) !important;
+        height: clamp(340px, calc(100svh - 300px), 680px) !important;
+    }
+}
+
 .main-header {
     font-size: 3.5rem;
     font-weight: 900;
@@ -304,17 +316,17 @@ html, body, [class*="css"] {
     background: linear-gradient(145deg, #1e1e2e, #2a2a3e) !important;
     border: 2px solid #3a3a4e !important;
     color: #ffffff !important;
-    padding: 1rem 1.5rem !important;
-    border-radius: 15px !important;
-    margin: 0.5rem 0 !important;
+    padding: 0.75rem 1rem !important;
+    border-radius: 12px !important;
+    margin: 0.3rem 0 !important;
     width: 100% !important;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease !important;
     font-weight: 600 !important;
     position: relative !important;
     overflow: hidden !important;
     opacity: 1 !important;
     transform: translateX(0) !important;
-    animation: slideInBounce 0.8s ease-out forwards !important;
+    animation: slideInBounce 0.45s ease-out both !important;
 }
 
 [data-testid="stSidebar"] button:nth-child(1) { animation-delay: 0.1s !important; }
@@ -326,8 +338,8 @@ html, body, [class*="css"] {
 [data-testid="stSidebar"] button:nth-child(7) { animation-delay: 0.7s !important; }
 
 @keyframes slideInBounce {
-    0% { transform: translateX(-20px) scale(0.95); opacity: 0.7; }
-    50% { transform: translateX(5px) scale(1.02); opacity: 0.9; }
+    0% { transform: translateX(-10px); opacity: 0.7; }
+    70% { transform: translateX(2px); opacity: 0.9; }
     100% { transform: translateX(0) scale(1); opacity: 1; }
 }
 
@@ -349,14 +361,40 @@ html, body, [class*="css"] {
 [data-testid="stSidebar"] button:hover {
     background: linear-gradient(145deg, #667eea, #764ba2) !important;
     border-color: #667eea !important;
-    transform: translateY(-4px) scale(1.03) !important;
-    box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4) !important;
+    transform: translateX(3px) !important;
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.28) !important;
     color: #ffffff !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stBaseButton-primary"] {
+    background: linear-gradient(110deg, rgba(102, 126, 234, 0.32), rgba(118, 75, 162, 0.22)) !important;
+    border-color: #8b8cff !important;
+    box-shadow: inset 3px 0 0 #a78bfa, 0 5px 18px rgba(102, 126, 234, 0.2) !important;
+    color: #ffffff !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stBaseButton-primary"]:hover {
+    background: linear-gradient(110deg, rgba(102, 126, 234, 0.42), rgba(118, 75, 162, 0.32)) !important;
+    border-color: #a78bfa !important;
+}
+
+[data-testid="stSidebar"] button:focus-visible {
+    outline: 3px solid #c4b5fd !important;
+    outline-offset: 2px !important;
 }
 
 [data-testid="stSidebar"] button:active {
     transform: translateY(-2px) scale(1.01) !important;
     box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-testid="stSidebar"] button,
+    [data-testid="stSidebar"] button::before,
+    [data-testid="stSidebar"] > div > div {
+        animation: none !important;
+        transition: none !important;
+    }
 }
 
 /* Active page indicator */
@@ -484,6 +522,16 @@ st.markdown(f"""
 @st.cache_resource
 def load_mobilenet_model():
     """Download and load the MobileNet SSD model for object detection."""
+    dnn_module = getattr(cv2, "dnn", None)
+    if dnn_module is None or not hasattr(dnn_module, "readNetFromCaffe"):
+        st.error(
+            f"MobileNet-SSD needs OpenCV 4.13.0 with Caffe support; "
+            f"this environment has OpenCV {cv2.__version__}. Reinstall "
+            "requirements.txt and restart the app. If deploying with Streamlit "
+            "Cloud, clear the app cache before rebooting."
+        )
+        return None
+
     prototxt_url = "https://raw.githubusercontent.com/djmv/MobilNet_SSD_opencv/master/MobileNetSSD_deploy.prototxt"
     caffemodel_url = "https://github.com/djmv/MobilNet_SSD_opencv/raw/master/MobileNetSSD_deploy.caffemodel"
     
@@ -507,7 +555,7 @@ def load_mobilenet_model():
                 return None
                 
     try:
-        net = cv2.dnn.readNetFromCaffe(prototxt_path, caffemodel_path)
+        net = dnn_module.readNetFromCaffe(prototxt_path, caffemodel_path)
         return net
     except Exception as e:
         st.error(f"Error loading model: {e}")
@@ -850,11 +898,11 @@ def main():
             "⚙️ Settings": "settings"
         }
 
-        for i, (page_name, page_key) in enumerate(pages.items()):
-            # Use Streamlit button with enhanced CSS targeting
+        for page_name, page_key in pages.items():
             if st.button(page_name, key=f"nav_{page_key}", 
                         help=f"Navigate to {page_name}",
-                        use_container_width=True):
+                        type="primary" if st.session_state.page == page_key else "secondary",
+                        width="stretch"):
                 st.session_state.page = page_key
                 st.rerun()
 
@@ -863,6 +911,48 @@ def main():
         current_page_name = [name for name, key in pages.items() if key == st.session_state.page]
         if current_page_name:
             st.markdown(f'<div class="current-page-indicator">📍 {current_page_name[0]}</div>', unsafe_allow_html=True)
+
+    st.html("""
+            <script>
+                (() => {
+                    const appWindow = window;
+                    const appDocument = appWindow.document;
+                    const listenerKey = "__borderDefenceSidebarNavigationListener";
+                    if (appWindow[listenerKey]) return;
+                    appWindow[listenerKey] = true;
+
+                    appDocument.addEventListener("click", (event) => {
+                        const target = event.target;
+                        if (!(target instanceof appWindow.Element)) return;
+
+                        const navButton = target.closest(
+                            '[data-testid="stSidebar"] button'
+                        );
+                        if (
+                            !navButton ||
+                            navButton.closest('[data-testid="stSidebarCollapseButton"]')
+                        ) {
+                            return;
+                        }
+
+                        appWindow.setTimeout(() => {
+                            const sidebar = appDocument.querySelector(
+                                '[data-testid="stSidebar"]'
+                            );
+                            const collapseButton = appDocument.querySelector(
+                                '[data-testid="stSidebarCollapseButton"] button'
+                            );
+                            if (
+                                sidebar?.getAttribute("aria-expanded") === "true" &&
+                                collapseButton
+                            ) {
+                                collapseButton.click();
+                            }
+                        }, 0);
+                    }, true);
+                })();
+            </script>
+        """, width="content", unsafe_allow_javascript=True)
 
     # HEADER WITH REAL-TIME INFO
     col1, col2, col3 = st.columns([2, 1, 1])
@@ -912,7 +1002,7 @@ def main():
         with col3:
             st.markdown("**📤 Export Data**")
             export_format = st.selectbox("Export Format Selection", ["CSV", "JSON", "Excel"], label_visibility="collapsed")
-            if st.button("💾 Export Dataset", use_container_width=True):
+            if st.button("💾 Export Dataset", width="stretch"):
                 export_data_bytes = export_data(data, export_format.lower())
                 st.download_button(
                     label=f"📥 Download {export_format}",
@@ -958,7 +1048,7 @@ def main():
         # Validate data
         if len(data) == 0:
             st.warning("⚠️ System data has been cleared. Analytics and modeling are suspended.")
-            if st.button("🔄 Quick Regenerate Data", use_container_width=True, type="primary"):
+            if st.button("🔄 Quick Regenerate Data", width="stretch", type="primary"):
                 st.session_state.data_cleared = False
                 generate_sample_data.clear()
                 train_ai_model.clear()
@@ -1062,7 +1152,7 @@ def main():
                 }
             ))
             fig_gauge.update_layout(height=160, margin=dict(l=10, r=10, t=40, b=10), paper_bgcolor="rgba(0,0,0,0)", font={'color': "white"})
-            st.plotly_chart(fig_gauge, use_container_width=True)
+            st.plotly_chart(fig_gauge, width="stretch")
 
         with col5:
             # Recent activity (last 24h)
@@ -1117,7 +1207,7 @@ def main():
                 paper_bgcolor='rgba(0,0,0,0)',
                 font_color='white'
             )
-            st.plotly_chart(fig_risk, use_container_width=True)
+            st.plotly_chart(fig_risk, width="stretch")
 
         with col2:
             st.markdown('<h3 class="section-header">🎯 Top Risk Factors</h3>', unsafe_allow_html=True)
@@ -1143,7 +1233,7 @@ def main():
                 paper_bgcolor='rgba(0,0,0,0)',
                 font_color='white'
             )
-            st.plotly_chart(fig_importance, use_container_width=True)
+            st.plotly_chart(fig_importance, width="stretch")
             
         # Hotspot Details Tabs
         st.markdown("---")
@@ -1158,19 +1248,20 @@ def main():
             
             for i, (_, row) in enumerate(top_hotspots.iterrows()):
                 with tabs[i]:
-                    st.markdown(f"#### {row['Hotspot']} - {row['country']}")
-                    tcol1, tcol2, tcol3, tcol4 = st.columns(4)
-                    
-                    with tcol1:
-                        st.metric("Average Risk", f"{row['avg_risk']*100:.1f}%")
-                    with tcol2:
-                        st.metric("Total Events", f"{int(row['total_events']):,}")
-                    with tcol3:
-                        st.metric("Breach Rate", f"{row['intrusion_rate']*100:.1f}%")
-                    with tcol4:
-                        st.metric("Night Threat", f"{row['night_rate']*100:.1f}%")
-                        
-                    st.markdown(f"**Security Status:** {row['Priority']}")
+                    with st.container(height=280, border=True, key=f"hotspot-detail-card-{i}"):
+                        st.markdown(f"#### {row['Hotspot']} - {row['country']}")
+                        tcol1, tcol2, tcol3, tcol4 = st.columns(4)
+
+                        with tcol1:
+                            st.metric("Average Risk", f"{row['avg_risk']*100:.1f}%")
+                        with tcol2:
+                            st.metric("Total Events", f"{int(row['total_events']):,}")
+                        with tcol3:
+                            st.metric("Breach Rate", f"{row['intrusion_rate']*100:.1f}%")
+                        with tcol4:
+                            st.metric("Night Threat", f"{row['night_rate']*100:.1f}%")
+
+                        st.markdown(f"**Security Status:** {row['Priority']}")
     
     elif st.session_state.page == "map":
         # WORLD MAP VISUALIZATION
@@ -1213,14 +1304,25 @@ def main():
             # Density Map View
             density_data = data.copy()
             density_data['Weight'] = density_data[size_metric] if size_metric in density_data.columns else density_data['Risk_Score']
-            fig_map = px.density_mapbox(
+            fig_map = px.density_map(
                 density_data, lat="Latitude", lon="Longitude", z="Weight", radius=35,
-                center=dict(lat=30, lon=20), zoom=2, height=750,
+                center=dict(lat=30, lon=20), zoom=2, map_style=map_style,
                 hover_name="Hotspot", hover_data=['Country', 'Risk_Score'],
                 title="🔥 Military Thermal Density Map"
             )
             fig_map.update_traces(coloraxis="coloraxis")
-            fig_map.update_layout(coloraxis_colorscale="inferno")
+            fig_map.update_layout(
+                coloraxis_colorscale="inferno",
+                coloraxis_colorbar={
+                    "title": size_metric,
+                    "x": 0.98,
+                    "xanchor": "right",
+                    "y": 0.48,
+                    "yanchor": "middle",
+                    "len": 0.72,
+                    "thickness": 14
+                }
+            )
             
         elif map_view == "24H Threat Time-Lapse":
             # Time-lapse Animation view
@@ -1229,12 +1331,23 @@ def main():
                 Breach_Count=('Is_Intrusion', 'sum')
             ).reset_index().sort_values('Hour')
             time_data['Hour_Str'] = time_data['Hour'].apply(lambda x: f"{x:02d}:00")
-            fig_map = px.scatter_mapbox(
+            fig_map = px.scatter_map(
                 time_data, lat="Latitude", lon="Longitude", size=size_metric, color=color_metric,
                 animation_frame="Hour_Str", hover_name="Hotspot", hover_data=['Country'],
-                color_continuous_scale="RdYlGn_r", size_max=45, zoom=2, height=750,
-                center=dict(lat=30, lon=20),
+                color_continuous_scale="RdYlGn_r", size_max=45, zoom=2,
+                center=dict(lat=30, lon=20), map_style=map_style,
                 title="⏱️ 24H Threat Evolution Time-Lapse"
+            )
+            fig_map.update_layout(
+                coloraxis_colorbar={
+                    "title": color_metric,
+                    "x": 0.98,
+                    "xanchor": "right",
+                    "y": 0.48,
+                    "yanchor": "middle",
+                    "len": 0.72,
+                    "thickness": 14
+                }
             )
             if hasattr(fig_map.layout, 'updatemenus') and len(fig_map.layout.updatemenus) > 0:
                 fig_map.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = 800
@@ -1245,7 +1358,7 @@ def main():
             # Draw connection lines from HQ to Hotspots
             for _, row in map_df.iterrows():
                 line_color = "rgba(255, 68, 68, 0.4)" if row['Risk_Score'] > 0.5 else "rgba(102, 126, 234, 0.3)"
-                fig_map.add_trace(go.Scattermapbox(
+                fig_map.add_trace(go.Scattermap(
                     mode="lines",
                     lon=[hq_lon, row['Longitude']],
                     lat=[hq_lat, row['Latitude']],
@@ -1255,7 +1368,7 @@ def main():
                 ))
                 
             # HQ Marker
-            fig_map.add_trace(go.Scattermapbox(
+            fig_map.add_trace(go.Scattermap(
                 mode="markers+text",
                 lon=[hq_lon], lat=[hq_lat],
                 marker={"size": 15, "color": "#f093fb", "symbol": "circle"},
@@ -1268,7 +1381,7 @@ def main():
             ))
 
             # Hotspots Outer Glow
-            fig_map.add_trace(go.Scattermapbox(
+            fig_map.add_trace(go.Scattermap(
                 mode="markers",
                 lon=map_df['Longitude'], lat=map_df['Latitude'],
                 marker={
@@ -1284,7 +1397,7 @@ def main():
             ))
             
             # Hotspots Core Marker
-            fig_map.add_trace(go.Scattermapbox(
+            fig_map.add_trace(go.Scattermap(
                 mode="markers",
                 lon=map_df['Longitude'], lat=map_df['Latitude'],
                 marker={
@@ -1292,7 +1405,15 @@ def main():
                     "sizemode": 'area', "sizeref": 2.*max(map_df[size_metric])/(40.**2) if size_metric == 'Breach_Count' else 1, "sizemin": 8,
                     "color": map_df[color_metric],
                     "colorscale": "RdYlGn_r",
-                    "colorbar": {"title": color_metric, "x": 0.98},
+                    "colorbar": {
+                        "title": color_metric,
+                        "x": 0.98,
+                        "xanchor": "right",
+                        "y": 0.48,
+                        "yanchor": "middle",
+                        "len": 0.72,
+                        "thickness": 14
+                    },
                     "showscale": True
                 },
                 text=map_df['Hotspot'] + "<br>Risk: " + map_df['Risk_Pct'].round(1).astype(str) + "%<br>Breaches: " + map_df['Breach_Count'].astype(str),
@@ -1302,34 +1423,50 @@ def main():
             
             fig_map.update_layout(
                 title="📡 Tactical Command Control | Uplink Active",
-                height=750,
-                mapbox_pitch=45,
-                mapbox_bearing=15,
-                mapbox_center=dict(lat=35, lon=15),
-                mapbox_zoom=1.8
+                map_pitch=45,
+                map_bearing=15,
+                map_center=dict(lat=35, lon=15),
+                map_zoom=1.8
             )
 
         else:
             # Standard Map View (enhanced sizes and colors)
-            fig_map = px.scatter_mapbox(
+            fig_map = px.scatter_map(
                 map_df, lat="Latitude", lon="Longitude", size=size_metric, color=color_metric,
                 hover_name="Hotspot", hover_data={'Country': True, 'Risk_Pct': ':.1f', 'Breach_Count': True, 'Latitude': False, 'Longitude': False},
-                color_continuous_scale="Inferno", size_max=50, zoom=2, height=750,
-                center=dict(lat=30, lon=20),
+                color_continuous_scale="Inferno", size_max=50, zoom=2,
+                center=dict(lat=30, lon=20), map_style=map_style,
                 title="🔴 High Risk Zones | Standard Intelligence",
                 labels={'Risk_Pct': 'Threat Level %', 'Breach_Count': 'Total Breaches'}
+            )
+            fig_map.update_layout(
+                coloraxis_colorbar={
+                    "title": color_metric,
+                    "x": 0.98,
+                    "xanchor": "right",
+                    "y": 0.48,
+                    "yanchor": "middle",
+                    "len": 0.72,
+                    "thickness": 14
+                }
             )
 
         # Common Layout Updates
         fig_map.update_layout(
-            mapbox_style=map_style,
-            margin={"r":0,"t":65,"l":0,"b":0},
+            map_style=map_style,
+            margin={"r":100,"t":70,"l":12,"b":24},
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
             font_color='white',
             title_font={"size": 24, "color": "#a0a0c0"}
         )
-        st.plotly_chart(fig_map, use_container_width=True)
+        st.plotly_chart(
+            fig_map,
+            width="stretch",
+            height="stretch",
+            config={"responsive": True},
+            key="world-risk-map"
+        )
 
         # Map Statistics
         st.markdown("---")
@@ -1366,7 +1503,7 @@ def main():
                 paper_bgcolor='rgba(0,0,0,0)',
                 font_color='white'
             )
-            st.plotly_chart(fig_hourly, use_container_width=True)
+            st.plotly_chart(fig_hourly, width="stretch")
 
         with col2:
             st.markdown("**📅 Weekly Threat Pattern**")
@@ -1385,7 +1522,7 @@ def main():
                 paper_bgcolor='rgba(0,0,0,0)',
                 font_color='white'
             )
-            st.plotly_chart(fig_weekly, use_container_width=True)
+            st.plotly_chart(fig_weekly, width="stretch")
 
         # Weather and seasonal analysis
         col1, col2 = st.columns(2)
@@ -1406,7 +1543,7 @@ def main():
                 paper_bgcolor='rgba(0,0,0,0)',
                 font_color='white'
             )
-            st.plotly_chart(fig_weather, use_container_width=True)
+            st.plotly_chart(fig_weather, width="stretch")
 
         with col2:
             st.markdown("**📊 Risk Correlation Matrix**")
@@ -1428,7 +1565,7 @@ def main():
                 paper_bgcolor='rgba(0,0,0,0)',
                 font_color='white'
             )
-            st.plotly_chart(fig_corr, use_container_width=True)
+            st.plotly_chart(fig_corr, width="stretch")
 
         st.markdown("---")
 
@@ -1467,7 +1604,7 @@ def main():
                     font_color='white',
                     yaxis={'range': [0, 100]}
                 )
-                st.plotly_chart(fig_imp, use_container_width=True)
+                st.plotly_chart(fig_imp, width="stretch")
             else:
                 st.warning('Feature importance data not available yet.')
 
@@ -1536,7 +1673,7 @@ def main():
           ))])
         
         fig_sankey.update_layout(title_text="Intrusion Environmental Flow Paths", font_size=12, height=450, paper_bgcolor='rgba(0,0,0,0)', font_color='white')
-        st.plotly_chart(fig_sankey, use_container_width=True)
+        st.plotly_chart(fig_sankey, width="stretch")
 
         st.markdown("---")
         st.markdown('<h4 style="color: #ffffff;">🔍 Deep Analytics</h4>', unsafe_allow_html=True)
@@ -1559,7 +1696,7 @@ def main():
                 paper_bgcolor='rgba(0,0,0,0)',
                 font_color='white'
             )
-            st.plotly_chart(fig_night_day, use_container_width=True)
+            st.plotly_chart(fig_night_day, width="stretch")
 
         with col2:
             st.markdown("**🗓️ Weekend Impact**")
@@ -1576,7 +1713,7 @@ def main():
                 paper_bgcolor='rgba(0,0,0,0)',
                 font_color='white'
             )
-            st.plotly_chart(fig_weekend, use_container_width=True)
+            st.plotly_chart(fig_weekend, width="stretch")
 
         with col3:
             st.markdown("**📈 Risk Score Distribution**")
@@ -1592,7 +1729,7 @@ def main():
                 paper_bgcolor='rgba(0,0,0,0)',
                 font_color='white'
             )
-            st.plotly_chart(fig_risk_dist, use_container_width=True)
+            st.plotly_chart(fig_risk_dist, width="stretch")
     
     elif st.session_state.page == "predictor":
         # LIVE PREDICTOR
@@ -1661,7 +1798,7 @@ def main():
                         height=280,
                         margin=dict(l=40, r=40, t=30, b=30)
                     )
-                    st.plotly_chart(radar_fig, use_container_width=True)
+                    st.plotly_chart(radar_fig, width="stretch")
 
                 # Summary metrics below
                 st.markdown(f"""
@@ -1748,7 +1885,7 @@ def main():
             paper_bgcolor='rgba(0,0,0,0)',
             font_color='white'
         )
-        st.plotly_chart(fig_cm, use_container_width=True)
+        st.plotly_chart(fig_cm, width="stretch")
 
         # Model Insights
         col1, col2 = st.columns(2)
@@ -1817,18 +1954,21 @@ def main():
                     "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
                 })
                 net = load_mobilenet_model()
-                webrtc_ctx = webrtc_streamer(
-                    key="intrusion-detection",
-                    mode=WebRtcMode.SENDRECV,
-                    rtc_configuration=RTC_CONFIGURATION,
-                    video_processor_factory=lambda: VideoProcessor(net, detect_humans, detect_animals, detect_vehicles),
-                    media_stream_constraints={"video": True, "audio": False},
-                    async_processing=True,
-                )
-                if webrtc_ctx.video_processor:
-                    st.success("Webcam connected! AI detection is active.")
+                if net is None:
+                    st.info("Webcam detection cannot start until the MobileNet-SSD model is available.")
                 else:
-                    st.info("Waiting for webcam connection...")
+                    webrtc_ctx = webrtc_streamer(
+                        key="intrusion-detection",
+                        mode=WebRtcMode.SENDRECV,
+                        rtc_configuration=RTC_CONFIGURATION,
+                        video_processor_factory=lambda: VideoProcessor(net, detect_humans, detect_animals, detect_vehicles),
+                        media_stream_constraints={"video": True, "audio": False},
+                        async_processing=True,
+                    )
+                    if webrtc_ctx.video_processor:
+                        st.success("Webcam connected! AI detection is active.")
+                    else:
+                        st.info("Waiting for webcam connection...")
                     
             elif run_camera:
                 net = load_mobilenet_model()
@@ -1903,7 +2043,7 @@ def main():
                                     
                                 # Convert to RGB for Streamlit
                                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                                stframe.image(frame_rgb, channels="RGB", use_container_width=True)
+                                stframe.image(frame_rgb, channels="RGB", width="stretch")
                                 frame_count += 1
                                 time.sleep(0.1)  # Small delay to prevent overwhelming
                         finally:

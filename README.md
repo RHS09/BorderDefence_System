@@ -243,6 +243,10 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+The interactive maps use Plotly's MapLibre API and require Plotly 5.24 or newer.
+OpenCV is pinned to 4.13.0.90 for the Caffe model loader used by intrusion detection.
+After changing dependencies on Streamlit Cloud, clear the app cache and reboot it.
+
 ### 3. Launch System
 
 ```bash
@@ -298,5 +302,3 @@ streamlit run app.py
 ![Built with](https://img.shields.io/badge/Built_with-Streamlit_+_Python_+_AI/ML-00e5ff?style=for-the-badge)
 
 ---
-
-
